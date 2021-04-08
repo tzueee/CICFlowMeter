@@ -29,6 +29,8 @@ public class BasicFlow {
     private int bPSH_cnt;
     private int fURG_cnt;
     private int bURG_cnt;
+    private int fFIN_cnt;
+    private int bFIN_cnt;
 
     private long Act_data_pkt_forward;
     private long min_seg_size_forward;
@@ -57,19 +59,43 @@ public class BasicFlow {
     private long forwardLastSeen;
     private long backwardLastSeen;
     private long activityTimeout;
+    private long sfLastPacketTS = -1;
+    private int sfCount = 0;
+    private long sfAcHelper = -1;
+    //////////////////////////////
+    private long fbulkDuration = 0;
+    private long fbulkPacketCount = 0;
+    private long fbulkSizeTotal = 0;
+    private long fbulkStateCount = 0;
+    private long fbulkPacketCountHelper = 0;
+    private long fbulkStartHelper = 0;
+    private long fbulkSizeHelper = 0;
+    private long flastBulkTS = 0;
+    private long bbulkDuration = 0;
+    private long bbulkPacketCount = 0;
+    private long bbulkSizeTotal = 0;
+    private long bbulkStateCount = 0;
+    private long bbulkPacketCountHelper = 0;
+    private long bbulkStartHelper = 0;
+    private long bbulkSizeHelper = 0;
+    private long blastBulkTS = 0;
+
+    //If the flow has had a FIN flag in both directions, or an RST packet in one direction, then
+    //this value will be set to true. The reason we use this, is if any SYN packet comes when this variable is true,
+    //the flow will be terminated and a new flow will be started.
+    private boolean tcpFlowToBeTerminated;
 
     public BasicFlow(boolean isBidirectional, BasicPacketInfo packet, byte[] flowSrc, byte[] flowDst, int flowSrcPort, int flowDstPort, long activityTimeout) {
         super();
         this.activityTimeout = activityTimeout;
         this.initParameters();
         this.isBidirectional = isBidirectional;
-        this.firstPacket(packet);
         this.src = flowSrc;
         this.dst = flowDst;
         this.srcPort = flowSrcPort;
         this.dstPort = flowDstPort;
+        this.firstPacket(packet);
     }
-
     public BasicFlow(boolean isBidirectional, BasicPacketInfo packet, long activityTimeout) {
         super();
         this.activityTimeout = activityTimeout;
@@ -85,6 +111,7 @@ public class BasicFlow {
         this.isBidirectional = true;
         firstPacket(packet);
     }
+
 
     public void initParameters() {
         this.forward = new ArrayList<BasicPacketInfo>();
@@ -109,11 +136,12 @@ public class BasicFlow {
         this.bPSH_cnt = 0;
         this.fURG_cnt = 0;
         this.bURG_cnt = 0;
+        this.fFIN_cnt = 0;
+        this.bFIN_cnt = 0;
         this.fHeaderBytes = 0L;
         this.bHeaderBytes = 0L;
-
+        this.tcpFlowToBeTerminated = false;
     }
-
 
     public void firstPacket(BasicPacketInfo packet) {
         updateFlowBulk(packet);
@@ -193,7 +221,9 @@ public class BasicFlow {
                 if (packet.hasFlagURG()) {
                     this.fURG_cnt++;
                 }
-
+                if (packet.hasFlagFIN()) {
+                    this.fFIN_cnt++;
+                }
             } else {
                 this.bwdPktStats.addValue((double) packet.getPayloadBytes());
                 Init_Win_bytes_backward = packet.getTCPWindow();
@@ -209,7 +239,9 @@ public class BasicFlow {
                 if (packet.hasFlagURG()) {
                     this.bURG_cnt++;
                 }
-
+                if (packet.hasFlagFIN()) {
+                    this.bFIN_cnt++;
+                }
             }
         } else {
             if (packet.getPayloadBytes() >= 1) {
@@ -326,7 +358,6 @@ public class BasicFlow {
         }
     }
 
-
     public long getSflow_fbytes() {
         if (sfCount <= 0) return 0;
         return this.forwardBytes / sfCount;
@@ -347,10 +378,6 @@ public class BasicFlow {
         return this.backward.size() / sfCount;
     }
 
-    private long sfLastPacketTS = -1;
-    private int sfCount = 0;
-    private long sfAcHelper = -1;
-
     void detectUpdateSubflows(BasicPacketInfo packet) {
         if (sfLastPacketTS == -1) {
             sfLastPacketTS = packet.getTimeStamp();
@@ -366,25 +393,6 @@ public class BasicFlow {
 
         sfLastPacketTS = packet.getTimeStamp();
     }
-
-    //////////////////////////////
-    private long fbulkDuration = 0;
-    private long fbulkPacketCount = 0;
-    private long fbulkSizeTotal = 0;
-    private long fbulkStateCount = 0;
-    private long fbulkPacketCountHelper = 0;
-    private long fbulkStartHelper = 0;
-    private long fbulkSizeHelper = 0;
-    private long flastBulkTS = 0;
-    private long bbulkDuration = 0;
-    private long bbulkPacketCount = 0;
-    private long bbulkSizeTotal = 0;
-    private long bbulkStateCount = 0;
-    private long bbulkPacketCountHelper = 0;
-    private long bbulkStartHelper = 0;
-    private long bbulkSizeHelper = 0;
-    private long blastBulkTS = 0;
-
 
     public void updateFlowBulk(BasicPacketInfo packet) {
 
@@ -800,6 +808,10 @@ public class BasicFlow {
         return protocol;
     }
 
+    public void setProtocol(int protocol) {
+        this.protocol = protocol;
+    }
+
     public String getProtocolStr() {
         switch (this.protocol) {
             case (6):
@@ -808,10 +820,6 @@ public class BasicFlow {
                 return "UDP";
         }
         return "UNKNOWN";
-    }
-
-    public void setProtocol(int protocol) {
-        this.protocol = protocol;
     }
 
     public long getFlowStartTime() {
@@ -987,6 +995,14 @@ public class BasicFlow {
         return bURG_cnt;
     }
 
+    public int getFwdFINFlags() {
+        return fFIN_cnt;
+    }
+
+    public int getBwdFINFlags() {
+        return bFIN_cnt;
+    }
+
     public long getFwdHeaderLength() {
         return fHeaderBytes;
     }
@@ -1066,6 +1082,15 @@ public class BasicFlow {
     public double getIdleMin() {
         return (flowIdle.getN() > 0) ? flowIdle.getMin() : 0;
     }
+
+    public boolean isTcpFlowToBeTerminated() {
+        return tcpFlowToBeTerminated;
+    }
+
+    public void setTcpFlowToBeTerminated(boolean tcpFlowToBeTerminated) {
+        this.tcpFlowToBeTerminated = tcpFlowToBeTerminated;
+    }
+
 
     public String getLabel() {
         //the original is "|". I think it should be "||" need to check,

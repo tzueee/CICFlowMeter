@@ -43,6 +43,7 @@ public class FlowGenerator {
     private HashMap<Integer, BasicFlow> finishedFlows;
     private HashMap<String, ArrayList> IPAddresses;
 
+    // bidirectional is always assigned true in this application
     private boolean bidirectional;
     private long flowTimeOut;
     private long flowActivityTimeOut;
@@ -89,17 +90,28 @@ public class FlowGenerator {
             // 1.- we move the flow to finished flow list
             // 2.- we eliminate the flow from the current flow list
             // 3.- we create a new flow with the packet-in-process
-            if ((currentTimestamp - flow.getFlowStartTime()) > flowTimeOut) {
-                if (flow.packetCount() > 1) {
-                    if (mListener != null) {
-                        mListener.onFlowGenerated(flow);
-                    } else {
-                        finishedFlows.put(getFlowCount(), flow);
-                    }
+
+            if ((currentTimestamp - flow.getFlowStartTime()) > flowTimeOut
+                    || (flow.isTcpFlowToBeTerminated() && packet.hasFlagSYN())) {
+                if (mListener != null) {
+                    mListener.onFlowGenerated(flow);
+                } else {
+                    finishedFlows.put(getFlowCount(), flow);
                     //flow.endActiveIdleTime(currentTimestamp,this.flowActivityTimeOut, this.flowTimeOut, false);
                 }
                 currentFlows.remove(id);
-                currentFlows.put(id, new BasicFlow(bidirectional, packet, flow.getSrc(), flow.getDst(), flow.getSrcPort(), flow.getDstPort(), this.flowActivityTimeOut));
+
+                // Having a SYN packet and no ACK packet means it's the first packet in a new flow
+                if(packet.hasFlagSYN() && !packet.hasFlagACK()){
+                    currentFlows.put(id, new BasicFlow(bidirectional,packet,packet.getSrc(),packet.getDst(),packet.getSrcPort(),
+                            packet.getDstPort(), this.flowActivityTimeOut));
+                } else {
+                    // Otherwise, the previous flow was likely terminated because of a timeout, and the new flow has to
+                    // maintain the same source and destination information as the previous flow (since they're part of the
+                    // same TCP connection.
+                    currentFlows.put(id, new BasicFlow(bidirectional,packet,flow.getSrc(),flow.getDst(),flow.getSrcPort(),
+                            flow.getDstPort(), this.flowActivityTimeOut));
+                }
 
                 int cfsize = currentFlows.size();
                 if (cfsize % 50 == 0) {
@@ -113,12 +125,13 @@ public class FlowGenerator {
             } else if (packet.hasFlagFIN()) {
                 logger.debug("FlagFIN current has {} flow", currentFlows.size());
                 flow.addPacket(packet);
-                if (mListener != null) {
-                    mListener.onFlowGenerated(flow);
-                } else {
-                    finishedFlows.put(getFlowCount(), flow);
-                }
-                currentFlows.remove(id);
+
+                //If the flow now has FIN packets that have gone in both directions, the tcpFlowToBeTerminated
+                //variable of the flow should be set to true
+                if (flow.getFwdFINFlags() > 0 && flow.getBwdFINFlags() > 0) flow.setTcpFlowToBeTerminated(true);
+            } else if (packet.hasFlagRST()) {
+                flow.addPacket(packet);
+                flow.setTcpFlowToBeTerminated(true);
             } else {
                 flow.updateActiveIdleTime(currentTimestamp, this.flowActivityTimeOut);
                 flow.addPacket(packet);
