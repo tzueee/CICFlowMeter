@@ -187,6 +187,12 @@ public class BasicFlow {
                     this.forwardIAT.addValue(currentTimestamp - this.forwardLastSeen);
                 this.forwardLastSeen = currentTimestamp;
                 this.min_seg_size_forward = Math.min(packet.getHeaderBytes(), this.min_seg_size_forward);
+                if (packet.hasFlagPSH()) {
+                    this.fPSH_cnt++;
+                }
+                if (packet.hasFlagURG()) {
+                    this.fURG_cnt++;
+                }
 
             } else {
                 this.bwdPktStats.addValue((double) packet.getPayloadBytes());
@@ -197,6 +203,13 @@ public class BasicFlow {
                 if (this.backward.size() > 1)
                     this.backwardIAT.addValue(currentTimestamp - this.backwardLastSeen);
                 this.backwardLastSeen = currentTimestamp;
+                if (packet.hasFlagPSH()) {
+                    this.bPSH_cnt++;
+                }
+                if (packet.hasFlagURG()) {
+                    this.bURG_cnt++;
+                }
+
             }
         } else {
             if (packet.getPayloadBytes() >= 1) {
