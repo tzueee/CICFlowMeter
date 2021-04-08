@@ -21,6 +21,7 @@ public class BasicFlow {
     private long fHeaderBytes;
     private long bHeaderBytes;
 
+    // Is always the value true in this application
     private boolean isBidirectional;
 
     private HashMap<String, MutableInt> flagCounts;
@@ -145,12 +146,13 @@ public class BasicFlow {
 
     public void firstPacket(BasicPacketInfo packet) {
         updateFlowBulk(packet);
-        detectUpdateSubflows(packet);
+
         checkFlags(packet);
+        this.endActiveTime = packet.getTimeStamp();
         this.flowStartTime = packet.getTimeStamp();
         this.flowLastSeen = packet.getTimeStamp();
         this.startActiveTime = packet.getTimeStamp();
-        this.endActiveTime = packet.getTimeStamp();
+        detectUpdateSubflows(packet);
         this.flowLengthStats.addValue((double) packet.getPayloadBytes());
 
         if (this.src == null) {

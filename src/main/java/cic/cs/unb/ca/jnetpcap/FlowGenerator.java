@@ -124,12 +124,14 @@ public class FlowGenerator {
                 // 3.- we eliminate the flow from the current flow list
             } else if (packet.hasFlagFIN()) {
                 logger.debug("FlagFIN current has {} flow", currentFlows.size());
+                flow.updateActiveIdleTime(currentTimestamp, this.flowActivityTimeOut);
                 flow.addPacket(packet);
 
                 //If the flow now has FIN packets that have gone in both directions, the tcpFlowToBeTerminated
                 //variable of the flow should be set to true
                 if (flow.getFwdFINFlags() > 0 && flow.getBwdFINFlags() > 0) flow.setTcpFlowToBeTerminated(true);
             } else if (packet.hasFlagRST()) {
+                flow.updateActiveIdleTime(currentTimestamp, this.flowActivityTimeOut);
                 flow.addPacket(packet);
                 flow.setTcpFlowToBeTerminated(true);
             } else {
