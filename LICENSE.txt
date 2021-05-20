@@ -1,4 +1,16 @@
-# Copyright (c) 2016 
+# Copyright (c) 2021 Gints Engelen (gints.engelen@kuleuven.be)
+
+# When using this modified version of the CICFlowMeter tool, please cite our paper (preliminary citation):
+G. Engelen, V. Rimmer, W. Joosen, "Troubleshooting an Intrusion Detection Dataset: the CICIDS2017 Case Study", 2021 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW), 2021.
+
+Our paper as well as its extended documentation can be found at https://downloads.distrinet-research.be/WTMC2021/
+
+# Contributors to this modified version of the CICFlowMeter tool:
+Gints
+
+# Original copyright notice below
+
+# Copyright (c) 2016
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (CICFlowMeter), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 

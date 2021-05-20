@@ -1,49 +1,32 @@
-## Install jnetpcap local repo
+# Fixed version of the CICFlowMeter tool
 
-for linux, sudo is a prerequisite
-```
-//linux :at the pathtoproject/jnetpcap/linux/jnetpcap-1.4.r1425
-//windows: at the pathtoproject/jnetpcap/win/jnetpcap-1.4.r1425
-mvn install:install-file -Dfile=jnetpcap.jar -DgroupId=org.jnetpcap -DartifactId=jnetpcap -Dversion=1.4.1 -Dpackaging=jar
-```
+As part of our [WTMC 2021 paper](https://downloads.distrinet-research.be/WTMC2021/Resources/wtmc2021_Engelen_Troubleshooting.pdf), we analysed and improved the CICFlowMeter tool, the result of 
+which can be found in this repository. If you use this improved CICFlowMeter tool, please cite our paper (*preliminary bibtex!*):
 
-## Run
-### IntelliJ IDEA
-open a Terminal in the IDE
-```
-//linux:
-$ sudo bash
-$ ./gradlew execute
+            @INPROCEEDINGS{Engelen2021Troubleshooting,
+            author={Engelen, Gints and Rimmer, Vera and Joosen, Wouter},
+            booktitle={2021 IEEE European Symposium on Security and Privacy Workshops (EuroS\&PW)},
+            title={Troubleshooting an Intrusion Detection Dataset: the CICIDS2017 Case Study},
+            year={2021},
+            volume={},
+            number={},
+            pages={},
+            doi={}}
 
-//windows:
-$ gradlew execute
-```
-### Eclipse
+A detailed list of all fixes and improvements, as well as implications of the changes can be found on [our webpage](https://downloads.distrinet-research.be/WTMC2021/),
+which hosts the extended documentation of our paper. 
 
-Run eclipse with sudo
-```
-1. Right click App.java -> Run As -> Run Configurations -> Arguments -> VM arguments:
--Djava.library.path="pathtoproject/jnetpcap/linux/jnetpcap-1.4.r1425"  -> Run
+Here we stick to a brief summary of all changes to the CICFlowMeter tool: 
 
-2. Right click App.java -> Run As -> Java Application
+- A TCP flow is no longer terminated after a single FIN packet. It now terminates after mutual exchange of 
+FIN packets, which is more in line with the TCP specification.
+  
+- An RST packet is no longer ignored. Instead, the RST packet also terminates a TCP flow.
 
-```
+- The Flow Active and Idle time features no longer encode an absolute timestamp.
 
-## Make package
+- The values for *Fwd PSH Flags*, *Bwd PSH Flags*, *Fwd URG Flags* and *Bwd URG Flags* are now correctly incremented.
 
-### IntelliJ IDEA
-open a Terminal in the IDE
-```
-//linux:
-$ ./gradlew distZip
-//window
-$ gradlew distZip
-```
-the zip file will be in the pathtoproject/CICFlowMeter/build/distributions
+### Running the tool
 
-### Eclipse
-At the project root
-```
-mvn package
-```
-the jar file will be in the pathtoproject/CICFlowMeter/target
+To run the tool, please refer to the [original CICFlowMeter repository](https://github.com/ahlashkari/CICFlowMeter) for instructions.
