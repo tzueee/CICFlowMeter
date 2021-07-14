@@ -1,17 +1,16 @@
 # Fixed version of the CICFlowMeter tool
 
 As part of our [WTMC 2021 paper](https://downloads.distrinet-research.be/WTMC2021/Resources/wtmc2021_Engelen_Troubleshooting.pdf), we analysed and improved the CICFlowMeter tool, the result of 
-which can be found in this repository. If you use this improved CICFlowMeter tool, please cite our paper (*preliminary bibtex!*):
+which can be found in this repository. If you use this improved CICFlowMeter tool, please cite our paper:
 
-            @INPROCEEDINGS{Engelen2021Troubleshooting,
-            author={Engelen, Gints and Rimmer, Vera and Joosen, Wouter},
-            booktitle={2021 IEEE European Symposium on Security and Privacy Workshops (EuroS\&PW)},
+            @inproceedings{engelen2021troubleshooting,
             title={Troubleshooting an Intrusion Detection Dataset: the CICIDS2017 Case Study},
+            author={Engelen, Gints and Rimmer, Vera and Joosen, Wouter},
+            booktitle={2021 IEEE Security and Privacy Workshops (SPW)},
+            pages={7--12},
             year={2021},
-            volume={},
-            number={},
-            pages={},
-            doi={}}
+            organization={IEEE}
+            }
 
 A detailed list of all fixes and improvements, as well as implications of the changes can be found on [our webpage](https://downloads.distrinet-research.be/WTMC2021/),
 which hosts the extended documentation of our paper. 
