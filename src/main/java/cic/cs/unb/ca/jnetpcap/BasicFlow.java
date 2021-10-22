@@ -145,6 +145,16 @@ public class BasicFlow {
     }
 
     public void firstPacket(BasicPacketInfo packet) {
+        
+        if (this.src == null) {
+            this.src = packet.getSrc();
+            this.srcPort = packet.getSrcPort();
+        }
+        if (this.dst == null) {
+            this.dst = packet.getDst();
+            this.dstPort = packet.getDstPort();
+        }
+
         updateFlowBulk(packet);
 
         checkFlags(packet);
@@ -155,14 +165,6 @@ public class BasicFlow {
         detectUpdateSubflows(packet);
         this.flowLengthStats.addValue((double) packet.getPayloadBytes());
 
-        if (this.src == null) {
-            this.src = packet.getSrc();
-            this.srcPort = packet.getSrcPort();
-        }
-        if (this.dst == null) {
-            this.dst = packet.getDst();
-            this.dstPort = packet.getDstPort();
-        }
         if (Arrays.equals(this.src, packet.getSrc())) {
             this.min_seg_size_forward = packet.getHeaderBytes();
             Init_Win_bytes_forward = packet.getTCPWindow();
@@ -397,13 +399,11 @@ public class BasicFlow {
     }
 
     public void updateFlowBulk(BasicPacketInfo packet) {
-
-        if (this.src == packet.getSrc()) {
+        if (Arrays.equals(this.src, packet.getSrc())) {
             updateForwardBulk(packet, blastBulkTS);
         } else {
-            updateBackwardBulk(packet, flastBulkTS);
+            updateBackwardBulk(packet,flastBulkTS);
         }
-
     }
 
     public void updateForwardBulk(BasicPacketInfo packet, long tsOflastBulkInOther) {
