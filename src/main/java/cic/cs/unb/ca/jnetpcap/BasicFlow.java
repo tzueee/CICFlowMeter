@@ -284,7 +284,7 @@ public class BasicFlow {
 
     public double getDownUpRatio() {
         if (this.forward.size() > 0) {
-            return (double) (this.backward.size() / this.forward.size());
+            return ((double)this.backward.size())/this.forward.size();
         }
         return 0;
     }
