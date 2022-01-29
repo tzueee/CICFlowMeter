@@ -50,51 +50,55 @@ public enum FlowFeature {
     bw_psh_flag("Bwd PSH Flags","BwPSH"),			//38
     fw_urg_flag("Fwd URG Flags","FwURG"),			//39
     bw_urg_flag("Bwd URG Flags","BwURG"),			//40
-    fw_hdr_len("Fwd Header Length","FwHL"),			//41
-    bw_hdr_len("Bwd Header Length","BwHL"),			//42
-    fw_pkt_s("Fwd Packets/s","FwP/s"),				//43
-    bw_pkt_s("Bwd Packets/s","Bwp/s"),				//44
-    pkt_len_min("Packet Length Min","PLMI"),			//45
-    pkt_len_max("Packet Length Max","PLMA"),			//46
-    pkt_len_avg("Packet Length Mean","PLAG"),			//47
-    pkt_len_std("Packet Length Std","PLSD"),			//48
-    pkt_len_var("Packet Length Variance","PLVA"),		//49
-    fin_cnt("FIN Flag Count","FINCT"),				//50
-    syn_cnt("SYN Flag Count","SYNCT"),				//51
-    rst_cnt("RST Flag Count","RSTCT"),				//52
-    pst_cnt("PSH Flag Count","PSHCT"),				//53
-    ack_cnt("ACK Flag Count","ACKCT"),				//54
-    urg_cnt("URG Flag Count","URGCT"),				//55
-    CWR_cnt("CWR Flag Count","CWRCT"),				//56
-    ece_cnt("ECE Flag Count","ECECT"),				//57
-    down_up_ratio("Down/Up Ratio","D/URO"),			//58
-    pkt_size_avg("Average Packet Size","PSAG"),			//59
-    fw_seg_avg("Fwd Segment Size Avg","FwSgAG"),		//60
-    bw_seg_avg("Bwd Segment Size Avg","BwSgAG"),		//61
-    fw_byt_blk_avg("Fwd Bytes/Bulk Avg","FwB/BAG"),		//63   62 is duplicated with 41,so has been deleted
-    fw_pkt_blk_avg("Fwd Packet/Bulk Avg","FwP/BAG"),		//64
-    fw_blk_rate_avg("Fwd Bulk Rate Avg","FwBRAG"),		//65
-    bw_byt_blk_avg("Bwd Bytes/Bulk Avg","BwB/BAG"),		//66
-    bw_pkt_blk_avg("Bwd Packet/Bulk Avg","BwP/BAG"),		//67
-    bw_blk_rate_avg("Bwd Bulk Rate Avg","BwBRAG"),		//68
-    subfl_fw_pkt("Subflow Fwd Packets","SFFwP"),		//69
-    subfl_fw_byt("Subflow Fwd Bytes","SFFwB"),			//70
-    subfl_bw_pkt("Subflow Bwd Packets","SFBwP"),		//71
-    subfl_bw_byt("Subflow Bwd Bytes","SFBwB"),			//72
-    fw_win_byt("FWD Init Win Bytes","FwWB"),			//73
-    bw_win_byt("Bwd Init Win Bytes","BwWB"),			//74
-    Fw_act_pkt("Fwd Act Data Pkts","FwAP"),			//75
-    fw_seg_min("Fwd Seg Size Min","FwSgMI"),			//76
-    atv_avg("Active Mean","AcAG"),				//77
-    atv_std("Active Std","AcSD"),				//78
-    atv_max("Active Max","AcMA"),				//79
-    atv_min("Active Min","AcMI"),				//80
-    idl_avg("Idle Mean","IlAG"),				//81
-    idl_std("Idle Std","IlSD"),					//82
-    idl_max("Idle Max","IlMA"),					//83
-    idl_min("Idle Min","IlMI"),					//84
+
+    fw_rst_flag("Fwd RST Flags", "FwRST"),          //41
+    bw_rst_flag("Bwd RST Flags", "BwRST"),          //42
+
+    fw_hdr_len("Fwd Header Length","FwHL"),			//43
+    bw_hdr_len("Bwd Header Length","BwHL"),			//44
+    fw_pkt_s("Fwd Packets/s","FwP/s"),				//45
+    bw_pkt_s("Bwd Packets/s","Bwp/s"),				//46
+    pkt_len_min("Packet Length Min","PLMI"),			//47
+    pkt_len_max("Packet Length Max","PLMA"),			//48
+    pkt_len_avg("Packet Length Mean","PLAG"),			//49
+    pkt_len_std("Packet Length Std","PLSD"),			//50
+    pkt_len_var("Packet Length Variance","PLVA"),		//51
+    fin_cnt("FIN Flag Count","FINCT"),				//52
+    syn_cnt("SYN Flag Count","SYNCT"),				//53
+    rst_cnt("RST Flag Count","RSTCT"),				//54
+    pst_cnt("PSH Flag Count","PSHCT"),				//55
+    ack_cnt("ACK Flag Count","ACKCT"),				//56
+    urg_cnt("URG Flag Count","URGCT"),				//57
+    CWR_cnt("CWR Flag Count","CWRCT"),				//58
+    ece_cnt("ECE Flag Count","ECECT"),				//59
+    down_up_ratio("Down/Up Ratio","D/URO"),			//60
+    pkt_size_avg("Average Packet Size","PSAG"),			//61
+    fw_seg_avg("Fwd Segment Size Avg","FwSgAG"),		//62
+    bw_seg_avg("Bwd Segment Size Avg","BwSgAG"),		//63
+    fw_byt_blk_avg("Fwd Bytes/Bulk Avg","FwB/BAG"),		//64   62 is duplicated with 43,so has been deleted
+    fw_pkt_blk_avg("Fwd Packet/Bulk Avg","FwP/BAG"),		//65
+    fw_blk_rate_avg("Fwd Bulk Rate Avg","FwBRAG"),		//66
+    bw_byt_blk_avg("Bwd Bytes/Bulk Avg","BwB/BAG"),		//67
+    bw_pkt_blk_avg("Bwd Packet/Bulk Avg","BwP/BAG"),		//68
+    bw_blk_rate_avg("Bwd Bulk Rate Avg","BwBRAG"),		//69
+    subfl_fw_pkt("Subflow Fwd Packets","SFFwP"),		//70
+    subfl_fw_byt("Subflow Fwd Bytes","SFFwB"),			//71
+    subfl_bw_pkt("Subflow Bwd Packets","SFBwP"),		//72
+    subfl_bw_byt("Subflow Bwd Bytes","SFBwB"),			//73
+    fw_win_byt("FWD Init Win Bytes","FwWB"),			//74
+    bw_win_byt("Bwd Init Win Bytes","BwWB"),			//75
+    Fw_act_pkt("Fwd Act Data Pkts","FwAP"),			//76
+    fw_seg_min("Fwd Seg Size Min","FwSgMI"),			//77
+    atv_avg("Active Mean","AcAG"),				//78
+    atv_std("Active Std","AcSD"),				//79
+    atv_max("Active Max","AcMA"),				//80
+    atv_min("Active Min","AcMI"),				//81
+    idl_avg("Idle Mean","IlAG"),				//82
+    idl_std("Idle Std","IlSD"),					//83
+    idl_max("Idle Max","IlMA"),					//84
+    idl_min("Idle Min","IlMI"),					//85
 	
-	Label("Label","LBL",new String[]{"NeedManualLabel"});	//85
+	Label("Label","LBL",new String[]{"NeedManualLabel"});	//86
 
 
 	protected static final Logger logger = LoggerFactory.getLogger(FlowFeature.class);
