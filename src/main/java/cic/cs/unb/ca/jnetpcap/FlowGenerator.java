@@ -90,9 +90,15 @@ public class FlowGenerator {
             // 1.- we move the flow to finished flow list
             // 2.- we eliminate the flow from the current flow list
             // 3.- we create a new flow with the packet-in-process
-
             if ((currentTimestamp - flow.getFlowStartTime()) > flowTimeOut
-                    || (flow.isTcpFlowToBeTerminated() && packet.hasFlagSYN())) {
+                    || (flow.isTcpFlowToBeTerminated())) {
+                // set cumulative flow time if TCP packet
+                if (flow.getProtocol() == ProtocolEnum.TCP) {
+                    long currDuration = flow.getCumulativeTcpConnectionDuration();
+                    currDuration += currentTimestamp - flow.getFlowStartTime();
+                    flow.setCumulativeTcpConnectionDuration(currDuration);
+                }
+
                 if (mListener != null) {
                     mListener.onFlowGenerated(flow);
                 } else {
@@ -101,16 +107,22 @@ public class FlowGenerator {
                 }
                 currentFlows.remove(id);
 
-                // Having a SYN packet and no ACK packet means it's the first packet in a new flow
-                if(packet.hasFlagSYN() && !packet.hasFlagACK()){
+                // If the original flow is set for termination, or the flow is not a tcp connection, create a new flow
+                if (flow.isTcpFlowToBeTerminated() || packet.getProtocol() != ProtocolEnum.TCP) {
+                    // create new flow, don't switch direction
                     currentFlows.put(id, new BasicFlow(bidirectional,packet,packet.getSrc(),packet.getDst(),packet.getSrcPort(),
-                            packet.getDstPort(), this.flowActivityTimeOut));
+                    packet.getDstPort(), this.flowActivityTimeOut));
                 } else {
-                    // Otherwise, the previous flow was likely terminated because of a timeout, and the new flow has to
-                    // maintain the same source and destination information as the previous flow (since they're part of the
-                    // same TCP connection.
-                    currentFlows.put(id, new BasicFlow(bidirectional,packet,flow.getSrc(),flow.getDst(),flow.getSrcPort(),
-                            flow.getDstPort(), this.flowActivityTimeOut));
+                  // Otherwise, the previous flow was likely terminated because of a timeout, and the new flow has to
+                  // maintain the same source and destination information as the previous flow (since they're part of the
+                  // same TCP connection).
+                    BasicFlow newFlow = new BasicFlow(bidirectional,packet,flow.getSrc(),flow.getDst(),flow.getSrcPort(),
+                            flow.getDstPort(), this.flowActivityTimeOut);
+                    newFlow.setCumulativeTcpConnectionDuration(flow.getCumulativeTcpConnectionDuration());
+                    // Create a link to the previous tcp flow, this is required so that the final tcp flow duration
+                    // can be set correctly.
+                    newFlow.setPreviousTcpFlow(flow);
+                    currentFlows.put(id, newFlow);
                 }
 
                 int cfsize = currentFlows.size();
@@ -239,6 +251,11 @@ public class FlowGenerator {
 
             for (BasicFlow flow : currentFlows.values()) {
                 if (flow.packetCount() >= 1) {
+
+                    if (flow.getProtocol() == ProtocolEnum.TCP) {
+                        flow = updateTcpCxnDuration(flow);
+                    }
+
                     output.write((flow.dumpFlowBasedFeaturesEx() + LINE_SEP).getBytes());
                     total++;
                 } else {
@@ -259,6 +276,20 @@ public class FlowGenerator {
             }
         }
         return total;
+    }
+
+    private BasicFlow updateTcpCxnDuration(BasicFlow tcpFlow) {
+        long currDuration = tcpFlow.getCumulativeTcpConnectionDuration();
+
+        if (currDuration == 0) {
+            currDuration += tcpFlow.getFlowDuration();
+        } else if (tcpFlow.getPreviousTcpFlow() != null) {
+            long flowGap = tcpFlow.getLastSeen() - tcpFlow.getPreviousTcpFlow().getLastSeen();
+            currDuration += flowGap;
+        }
+
+        tcpFlow.setCumulativeTcpConnectionDuration(currDuration);
+        return tcpFlow;
     }
 
     private int getFlowCount() {

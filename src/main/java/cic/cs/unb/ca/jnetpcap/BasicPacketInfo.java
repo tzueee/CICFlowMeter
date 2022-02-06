@@ -12,7 +12,7 @@ public class BasicPacketInfo {
     private    byte[] dst;
     private    int srcPort;
     private    int dstPort;
-    private    int protocol;
+    private    ProtocolEnum protocol = ProtocolEnum.DEFAULT;
     private    long   timeStamp;
     private    long   payloadBytes;
     private    String  flowId = null;  
@@ -30,7 +30,7 @@ public class BasicPacketInfo {
 	private int payloadPacket=0;
 
 	public BasicPacketInfo(byte[] src, byte[] dst, int srcPort, int dstPort,
-			int protocol, long timeStamp, IdGenerator generator) {
+			ProtocolEnum protocol, long timeStamp, IdGenerator generator) {
 		super();
 		this.id = generator.nextId();
 		this.src = src;
@@ -62,20 +62,20 @@ public class BasicPacketInfo {
     	}     	
     	
         if(forward){
-            this.flowId = this.getSourceIP() + "-" + this.getDestinationIP() + "-" + this.srcPort  + "-" + this.dstPort  + "-" + this.protocol;
+            this.flowId = this.getSourceIP() + "-" + this.getDestinationIP() + "-" + this.srcPort  + "-" + this.dstPort  + "-" + this.protocol.val;
         }else{
-            this.flowId = this.getDestinationIP() + "-" + this.getSourceIP() + "-" + this.dstPort  + "-" + this.srcPort  + "-" + this.protocol;
+            this.flowId = this.getDestinationIP() + "-" + this.getSourceIP() + "-" + this.dstPort  + "-" + this.srcPort  + "-" + this.protocol.val;
         }
         return this.flowId;
 	}
 
  	public String fwdFlowId() {  
-		this.flowId = this.getSourceIP() + "-" + this.getDestinationIP() + "-" + this.srcPort  + "-" + this.dstPort  + "-" + this.protocol;
+		this.flowId = this.getSourceIP() + "-" + this.getDestinationIP() + "-" + this.srcPort  + "-" + this.dstPort  + "-" + this.protocol.val;
 		return this.flowId;
 	}
 	
 	public String bwdFlowId() {  
-		this.flowId = this.getDestinationIP() + "-" + this.getSourceIP() + "-" + this.dstPort  + "-" + this.srcPort  + "-" + this.protocol;
+		this.flowId = this.getDestinationIP() + "-" + this.getSourceIP() + "-" + this.dstPort  + "-" + this.srcPort  + "-" + this.protocol.val;
 		return this.flowId;
 	}
 
@@ -138,11 +138,11 @@ public class BasicPacketInfo {
 		this.dstPort = dstPort;
 	}
 
-	public int getProtocol() {
+	public ProtocolEnum getProtocol() {
 		return protocol;
 	}
 
-	public void setProtocol(int protocol) {
+	public void setProtocol(ProtocolEnum protocol) {
 		this.protocol = protocol;
 	}
 

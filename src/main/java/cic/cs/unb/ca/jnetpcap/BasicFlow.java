@@ -45,7 +45,7 @@ public class BasicFlow {
     private byte[] dst;
     private int srcPort;
     private int dstPort;
-    private int protocol;
+    private ProtocolEnum protocol;
     private long flowStartTime;
     private long startActiveTime;
     private long endActiveTime;
@@ -87,6 +87,15 @@ public class BasicFlow {
     //this value will be set to true. The reason we use this, is if any SYN packet comes when this variable is true,
     //the flow will be terminated and a new flow will be started.
     private boolean tcpFlowToBeTerminated;
+
+    // The flow timeout is dependent on the user configuration and is unable to capture proper
+    // context in extended TCP connections. This field will help identify whether a flow is
+    // part of an extended TCP connection.
+    private long cumulativeTcpConnectionDuration;
+
+    // Create a link to the previousTcpFlow if it exists
+    private BasicFlow previousTcpFlow;
+
 
     public BasicFlow(boolean isBidirectional, BasicPacketInfo packet, byte[] flowSrc, byte[] flowDst, int flowSrcPort, int flowDstPort, long activityTimeout) {
         super();
@@ -144,6 +153,7 @@ public class BasicFlow {
         this.fHeaderBytes = 0L;
         this.bHeaderBytes = 0L;
         this.tcpFlowToBeTerminated = false;
+        this.cumulativeTcpConnectionDuration = 0L;
     }
 
     public void firstPacket(BasicPacketInfo packet) {
@@ -620,7 +630,7 @@ public class BasicFlow {
         dump += getSrcPort() + ",";
         dump += FormatUtils.ip(dst) + ",";
         dump += getDstPort() + ",";
-        dump += getProtocol() + ",";
+        dump += getProtocol().val + ",";
         //dump+=this.flowStartTime+",";
         dump += DateFormatter.parseDateFromLong(this.flowStartTime / 1000L, "dd/MM/yyyy hh:mm:ss") + ",";
         long flowDuration = this.flowLastSeen - this.flowStartTime;
@@ -812,16 +822,16 @@ public class BasicFlow {
         this.dstPort = dstPort;
     }
 
-    public int getProtocol() {
+    public ProtocolEnum getProtocol() {
         return protocol;
     }
 
-    public void setProtocol(int protocol) {
+    public void setProtocol(ProtocolEnum protocol) {
         this.protocol = protocol;
     }
 
     public String getProtocolStr() {
-        switch (this.protocol) {
+        switch (this.protocol.val) {
             case (6):
                 return "TCP";
             case (17):
@@ -1099,6 +1109,22 @@ public class BasicFlow {
         this.tcpFlowToBeTerminated = tcpFlowToBeTerminated;
     }
 
+    public long getCumulativeTcpConnectionDuration() {
+        return this.cumulativeTcpConnectionDuration;
+    }
+
+    public void setCumulativeTcpConnectionDuration(long cumTcpDuration) {
+        this.cumulativeTcpConnectionDuration = cumTcpDuration;
+    }
+
+    public BasicFlow getPreviousTcpFlow() {
+        return this.previousTcpFlow;
+    }
+
+    public void setPreviousTcpFlow(BasicFlow previousTcpFlow) {
+        this.previousTcpFlow = previousTcpFlow;
+    }
+
 
     public String getLabel() {
         //the original is "|". I think it should be "||" need to check,
@@ -1119,7 +1145,7 @@ public class BasicFlow {
         dump.append(getSrcPort()).append(separator);                                //3
         dump.append(FormatUtils.ip(dst)).append(separator);                        //4
         dump.append(getDstPort()).append(separator);                                //5
-        dump.append(getProtocol()).append(separator);                                //6
+        dump.append(getProtocol().val).append(separator);                                //6
 
         String starttime = DateFormatter.convertEpochTimestamp2String(flowStartTime);
         dump.append(starttime).append(separator);                                    //7
@@ -1280,7 +1306,8 @@ public class BasicFlow {
             dump.append(0).append(separator);
         }
 
-        dump.append(getLabel());                                                       //86
+        dump.append(cumulativeTcpConnectionDuration).append(separator);             //86
+        dump.append(getLabel());                                                    //87
 
 
         return dump.toString();
