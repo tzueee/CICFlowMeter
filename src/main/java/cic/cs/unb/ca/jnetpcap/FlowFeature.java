@@ -97,8 +97,9 @@ public enum FlowFeature {
     idl_std("Idle Std","IlSD"),					//83
     idl_max("Idle Max","IlMA"),					//84
     idl_min("Idle Min","IlMI"),					//85
+    cum_tcp_time("Total TCP Flow Time", "TTFT"), //86
 	
-	Label("Label","LBL",new String[]{"NeedManualLabel"});	//86
+	Label("Label","LBL",new String[]{"NeedManualLabel"});	//87
 
 
 	protected static final Logger logger = LoggerFactory.getLogger(FlowFeature.class);
