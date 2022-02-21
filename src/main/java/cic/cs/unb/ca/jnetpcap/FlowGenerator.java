@@ -92,10 +92,11 @@ public class FlowGenerator {
             // 3.- we create a new flow with the packet-in-process
             if ((currentTimestamp - flow.getFlowStartTime()) > flowTimeOut
                     || (flow.isTcpFlowToBeTerminated())) {
+
                 // set cumulative flow time if TCP packet
                 if (flow.getProtocol() == ProtocolEnum.TCP) {
                     long currDuration = flow.getCumulativeTcpConnectionDuration();
-                    currDuration += currentTimestamp - flow.getFlowStartTime();
+                    currDuration += flow.getFlowDuration();
                     flow.setCumulativeTcpConnectionDuration(currDuration);
                 }
 
@@ -118,7 +119,11 @@ public class FlowGenerator {
                   // same TCP connection).
                     BasicFlow newFlow = new BasicFlow(bidirectional,packet,flow.getSrc(),flow.getDst(),flow.getSrcPort(),
                             flow.getDstPort(), this.flowActivityTimeOut);
-                    newFlow.setCumulativeTcpConnectionDuration(flow.getCumulativeTcpConnectionDuration());
+
+                    long currDuration = flow.getCumulativeTcpConnectionDuration();
+                    // get the gap between the last flow and the start of this flow
+                    currDuration += (currentTimestamp) - flow.getLastSeen();
+                    newFlow.setCumulativeTcpConnectionDuration(currDuration);
                     // Create a link to the previous tcp flow, this is required so that the final tcp flow duration
                     // can be set correctly.
                     newFlow.setPreviousTcpFlow(flow);
