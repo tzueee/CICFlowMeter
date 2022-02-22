@@ -83,15 +83,13 @@ public class BasicFlow {
     private long bbulkSizeHelper = 0;
     private long blastBulkTS = 0;
 
-    //If the flow has had a FIN flag in both directions, or an RST packet in one direction, then
-    //this value will be set to true. The reason we use this, is if any SYN packet comes when this variable is true,
-    //the flow will be terminated and a new flow will be started.
-    private boolean tcpFlowToBeTerminated;
-
     // The flow timeout is dependent on the user configuration and is unable to capture proper
     // context in extended TCP connections. This field will help identify whether a flow is
     // part of an extended TCP connection.
     private long cumulativeTcpConnectionDuration;
+
+    //To keep track of TCP connection teardown, or an RST packet in one direction.
+    private TcpFlowState tcpFlowState;
 
     // Create a link to the previousTcpFlow if it exists
     private BasicFlow previousTcpFlow;
@@ -152,8 +150,8 @@ public class BasicFlow {
         this.bFIN_cnt = 0;
         this.fHeaderBytes = 0L;
         this.bHeaderBytes = 0L;
-        this.tcpFlowToBeTerminated = false;
         this.cumulativeTcpConnectionDuration = 0L;
+        this.tcpFlowState = null;
     }
 
     public void firstPacket(BasicPacketInfo packet) {
@@ -1101,12 +1099,12 @@ public class BasicFlow {
         return (flowIdle.getN() > 0) ? flowIdle.getMin() : 0;
     }
 
-    public boolean isTcpFlowToBeTerminated() {
-        return tcpFlowToBeTerminated;
+    public TcpFlowState getTcpFlowState() {
+        return this.tcpFlowState;
     }
 
-    public void setTcpFlowToBeTerminated(boolean tcpFlowToBeTerminated) {
-        this.tcpFlowToBeTerminated = tcpFlowToBeTerminated;
+    public void setTcpFlowState(TcpFlowState state) {
+        this.tcpFlowState = state;
     }
 
     public long getCumulativeTcpConnectionDuration() {
