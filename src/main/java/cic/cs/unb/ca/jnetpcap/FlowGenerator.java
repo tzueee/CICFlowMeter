@@ -283,16 +283,10 @@ public class FlowGenerator {
         return total;
     }
 
+
     private BasicFlow updateTcpCxnDuration(BasicFlow tcpFlow) {
         long currDuration = tcpFlow.getCumulativeTcpConnectionDuration();
-
-        if (currDuration == 0) {
-            currDuration += tcpFlow.getFlowDuration();
-        } else if (tcpFlow.getPreviousTcpFlow() != null) {
-            long flowGap = tcpFlow.getLastSeen() - tcpFlow.getPreviousTcpFlow().getLastSeen();
-            currDuration += flowGap;
-        }
-
+        currDuration += tcpFlow.getFlowDuration();
         tcpFlow.setCumulativeTcpConnectionDuration(currDuration);
         return tcpFlow;
     }
