@@ -90,12 +90,13 @@ public class FlowGenerator {
             // 1.- we move the flow to finished flow list
             // 2.- we eliminate the flow from the current flow list
             // 3.- we create a new flow with the packet-in-process
-            if ((currentTimestamp - flow.getFlowStartTime()) > flowTimeOut
-                    || (flow.isTcpFlowToBeTerminated())) {
+            if ((currentTimestamp - flow.getFlowStartTime()) > flowTimeOut ||
+                    (flow.getTcpFlowState() == TcpFlowState.READY_FOR_TERMINATION)) {
+
                 // set cumulative flow time if TCP packet
                 if (flow.getProtocol() == ProtocolEnum.TCP) {
                     long currDuration = flow.getCumulativeTcpConnectionDuration();
-                    currDuration += currentTimestamp - flow.getFlowStartTime();
+                    currDuration += flow.getFlowDuration();
                     flow.setCumulativeTcpConnectionDuration(currDuration);
                 }
 
@@ -108,7 +109,7 @@ public class FlowGenerator {
                 currentFlows.remove(id);
 
                 // If the original flow is set for termination, or the flow is not a tcp connection, create a new flow
-                if (flow.isTcpFlowToBeTerminated() || packet.getProtocol() != ProtocolEnum.TCP) {
+                if ((flow.getTcpFlowState() == TcpFlowState.READY_FOR_TERMINATION) || packet.getProtocol() != ProtocolEnum.TCP) {
                     // create new flow, don't switch direction
                     currentFlows.put(id, new BasicFlow(bidirectional,packet,packet.getSrc(),packet.getDst(),packet.getSrcPort(),
                     packet.getDstPort(), this.flowActivityTimeOut));
@@ -118,7 +119,11 @@ public class FlowGenerator {
                   // same TCP connection).
                     BasicFlow newFlow = new BasicFlow(bidirectional,packet,flow.getSrc(),flow.getDst(),flow.getSrcPort(),
                             flow.getDstPort(), this.flowActivityTimeOut);
-                    newFlow.setCumulativeTcpConnectionDuration(flow.getCumulativeTcpConnectionDuration());
+
+                    long currDuration = flow.getCumulativeTcpConnectionDuration();
+                    // get the gap between the last flow and the start of this flow
+                    currDuration += (currentTimestamp - flow.getLastSeen());
+                    newFlow.setCumulativeTcpConnectionDuration(currDuration);
                     // Create a link to the previous tcp flow, this is required so that the final tcp flow duration
                     // can be set correctly.
                     newFlow.setPreviousTcpFlow(flow);
@@ -139,13 +144,31 @@ public class FlowGenerator {
                 flow.updateActiveIdleTime(currentTimestamp, this.flowActivityTimeOut);
                 flow.addPacket(packet);
 
-                //If the flow now has FIN packets that have gone in both directions, the tcpFlowToBeTerminated
-                //variable of the flow should be set to true
-                if (flow.getFwdFINFlags() > 0 && flow.getBwdFINFlags() > 0) flow.setTcpFlowToBeTerminated(true);
+                // First FIN packet
+                if (flow.getTcpFlowState() == null) {
+                    flow.setTcpFlowState(TcpFlowState.FIRST_FIN_FLAG_RECEIVED);
+                } else if (flow.getTcpFlowState() == TcpFlowState.FIRST_FIN_FLAG_RECEIVED) {
+
+                    // Second FIN packet
+                    if (flow.getFwdFINFlags() > 0 && flow.getBwdFINFlags() > 0) {
+                        flow.setTcpFlowState(TcpFlowState.SECOND_FIN_FLAG_RECEIVED);
+                    }
+                }
+                currentFlows.put(id, flow);
+            } else if (packet.hasFlagACK()) {
+                flow.updateActiveIdleTime(currentTimestamp, this.flowActivityTimeOut);
+                flow.addPacket(packet);
+
+                // Final ack packet for TCP flow termination
+                if (flow.getTcpFlowState() == TcpFlowState.SECOND_FIN_FLAG_RECEIVED) {
+                    flow.setTcpFlowState(TcpFlowState.READY_FOR_TERMINATION);
+                }
+                currentFlows.put(id, flow);
             } else if (packet.hasFlagRST()) {
                 flow.updateActiveIdleTime(currentTimestamp, this.flowActivityTimeOut);
                 flow.addPacket(packet);
-                flow.setTcpFlowToBeTerminated(true);
+                flow.setTcpFlowState(TcpFlowState.READY_FOR_TERMINATION);
+                currentFlows.put(id, flow);
             } else {
                 flow.updateActiveIdleTime(currentTimestamp, this.flowActivityTimeOut);
                 flow.addPacket(packet);
@@ -278,16 +301,10 @@ public class FlowGenerator {
         return total;
     }
 
+
     private BasicFlow updateTcpCxnDuration(BasicFlow tcpFlow) {
         long currDuration = tcpFlow.getCumulativeTcpConnectionDuration();
-
-        if (currDuration == 0) {
-            currDuration += tcpFlow.getFlowDuration();
-        } else if (tcpFlow.getPreviousTcpFlow() != null) {
-            long flowGap = tcpFlow.getLastSeen() - tcpFlow.getPreviousTcpFlow().getLastSeen();
-            currDuration += flowGap;
-        }
-
+        currDuration += tcpFlow.getFlowDuration();
         tcpFlow.setCumulativeTcpConnectionDuration(currDuration);
         return tcpFlow;
     }
