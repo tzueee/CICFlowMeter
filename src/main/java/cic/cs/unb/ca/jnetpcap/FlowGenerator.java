@@ -91,7 +91,7 @@ public class FlowGenerator {
             // 2.- we eliminate the flow from the current flow list
             // 3.- we create a new flow with the packet-in-process
             if ((currentTimestamp - flow.getFlowStartTime()) > flowTimeOut ||
-                    (flow.getTcpFlowState() == TcpFlowState.READY_FOR_TERMINATION)) {
+                    ((flow.getTcpFlowState() == TcpFlowState.READY_FOR_TERMINATION) && packet.hasFlagSYN())) {
 
                 // set cumulative flow time if TCP packet
                 if (flow.getProtocol() == ProtocolEnum.TCP) {
@@ -109,7 +109,9 @@ public class FlowGenerator {
                 currentFlows.remove(id);
 
                 // If the original flow is set for termination, or the flow is not a tcp connection, create a new flow
-                if ((flow.getTcpFlowState() == TcpFlowState.READY_FOR_TERMINATION) || packet.getProtocol() != ProtocolEnum.TCP) {
+                // Having a SYN packet and no ACK packet means it's the first packet in a new flow
+                if (((flow.getTcpFlowState() == TcpFlowState.READY_FOR_TERMINATION) && packet.hasFlagSYN() && !packet.hasFlagACK())
+                        || packet.getProtocol() != ProtocolEnum.TCP) {
                     // create new flow, don't switch direction
                     currentFlows.put(id, new BasicFlow(bidirectional,packet,packet.getSrc(),packet.getDst(),packet.getSrcPort(),
                     packet.getDstPort(), this.flowActivityTimeOut));
