@@ -157,6 +157,11 @@ public class FlowGenerator {
                     }
                 }
                 currentFlows.put(id, flow);
+            } else if (packet.hasFlagRST()) {
+                flow.updateActiveIdleTime(currentTimestamp, this.flowActivityTimeOut);
+                flow.addPacket(packet);
+                flow.setTcpFlowState(TcpFlowState.READY_FOR_TERMINATION);
+                currentFlows.put(id, flow);
             } else if (packet.hasFlagACK()) {
                 flow.updateActiveIdleTime(currentTimestamp, this.flowActivityTimeOut);
                 flow.addPacket(packet);
@@ -165,11 +170,6 @@ public class FlowGenerator {
                 if (flow.getTcpFlowState() == TcpFlowState.SECOND_FIN_FLAG_RECEIVED) {
                     flow.setTcpFlowState(TcpFlowState.READY_FOR_TERMINATION);
                 }
-                currentFlows.put(id, flow);
-            } else if (packet.hasFlagRST()) {
-                flow.updateActiveIdleTime(currentTimestamp, this.flowActivityTimeOut);
-                flow.addPacket(packet);
-                flow.setTcpFlowState(TcpFlowState.READY_FOR_TERMINATION);
                 currentFlows.put(id, flow);
             } else {
                 flow.updateActiveIdleTime(currentTimestamp, this.flowActivityTimeOut);
