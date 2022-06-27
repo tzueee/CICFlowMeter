@@ -94,6 +94,10 @@ public class BasicFlow {
     // Create a link to the previousTcpFlow if it exists
     private BasicFlow previousTcpFlow;
 
+    // ICMP fields
+    private int icmpCode = -1;
+    private int icmpType = -1;
+
 
     public BasicFlow(boolean isBidirectional, BasicPacketInfo packet, byte[] flowSrc, byte[] flowDst, int flowSrcPort, int flowDstPort, long activityTimeout) {
         super();
@@ -204,6 +208,8 @@ public class BasicFlow {
             }
         }
         this.protocol = packet.getProtocol();
+        this.icmpCode = packet.getIcmpCode();
+        this.icmpType = packet.getIcmpType();
         this.flowId = packet.getFlowId();
     }
 
@@ -1123,6 +1129,14 @@ public class BasicFlow {
         this.previousTcpFlow = previousTcpFlow;
     }
 
+    public int getIcmpCode() {
+        return this.icmpCode;
+    }
+
+    public int getIcmpType() {
+        return this.icmpType;
+    }
+
 
     public String getLabel() {
         //the original is "|". I think it should be "||" need to check,
@@ -1304,8 +1318,11 @@ public class BasicFlow {
             dump.append(0).append(separator);
         }
 
-        dump.append(cumulativeTcpConnectionDuration).append(separator);             //86
-        dump.append(getLabel());                                                    //87
+        dump.append(icmpCode).append(separator);                                    // 86
+        dump.append(icmpType).append(separator);                                    // 87
+
+        dump.append(cumulativeTcpConnectionDuration).append(separator);             //88
+        dump.append(getLabel());                                                    //89
 
 
         return dump.toString();
