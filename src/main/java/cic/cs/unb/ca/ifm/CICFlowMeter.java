@@ -73,14 +73,27 @@ public class CICFlowMeter {
 			int nValid=0;
 			int nTotal=0;
 			int nDiscarded = 0;
-			
+			long previousTimestamp = 0;
+			long currentTimestamp = 0;
+			boolean disordered = false;
 			long start = System.currentTimeMillis();
 						
 		    while(true){
 				try{
-					basicPacket = packetReader.nextPacket();					
+					basicPacket = packetReader.nextPacket();
 					nTotal++;					
 					if(basicPacket!=null){
+						//
+						// Check that pcap file isn't disordered to make sure to obtain consistent network flows.
+						//
+						currentTimestamp = basicPacket.getTimeStamp();
+						if(previousTimestamp>currentTimestamp){
+							disordered = true;
+							break;
+						}else{
+							previousTimestamp = currentTimestamp;
+						}
+
 						flowGen.addPacket(basicPacket);
 						nValid++;
 					}else{
@@ -90,18 +103,26 @@ public class CICFlowMeter {
 					break;
 				}
 			}		
-			
-			long end = System.currentTimeMillis();
-			logger.info("Done! in {} seconds",((end-start)/1000));
-			logger.info("\t Total packets: {}",nTotal);
-			logger.info("\t Valid packets: {}",nValid);
-			logger.info("\t Ignored packets:{} {} ", nDiscarded,(nTotal-nValid) );
-			logger.info("PCAP duration {} seconds",((packetReader.getLastPacket()-packetReader.getFirstPacket())/1000));
-			logger.info("----------------------------------------------------------------------------");
-			totalFlows+=flowGen.dumpLabeledFlowBasedFeatures(outpath, file+"_ISCX.csv", FlowFeature.getHeader());
-			//flowGen.dumpIPAddresses(outpath, file+"_IP-Addresses.csv");
-			//flowGen.dumpTimeBasedFeatures(outpath, file+".csv");
-			
+
+			if(disordered){
+				// The pcap file is disordered don't export network flows.
+				logger.info("/!\\ The pcap file contains disordered packets ! The network flows may be incorrect.");
+				logger.info("Please order your pcap file and run the tool again.");
+				logger.info("----------------------------------------------------------------------------");
+			}else{
+				// the pcap file is well ordered continue and save flows.
+
+				long end = System.currentTimeMillis();
+				logger.info("Done! in {} seconds",((end-start)/1000));
+				logger.info("\t Total packets: {}",nTotal);
+				logger.info("\t Valid packets: {}",nValid);
+				logger.info("\t Ignored packets:{} {} ", nDiscarded,(nTotal-nValid) );
+				logger.info("PCAP duration {} seconds",((packetReader.getLastPacket()-packetReader.getFirstPacket())/1000));
+				logger.info("----------------------------------------------------------------------------");
+				totalFlows+=flowGen.dumpLabeledFlowBasedFeatures(outpath, file+"_ISCX.csv", FlowFeature.getHeader());
+				//flowGen.dumpIPAddresses(outpath, file+"_IP-Addresses.csv");
+				//flowGen.dumpTimeBasedFeatures(outpath, file+".csv");
+			}
 		}
 		logger.info("\n\n----------------------------------------------------------------------------\n TOTAL FLOWS GENERATED: {}",totalFlows);
 		logger.info("----------------------------------------------------------------------------\n");

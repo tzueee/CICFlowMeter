@@ -132,6 +132,9 @@ public class Cmd {
         int nValid=0;
         int nTotal=0;
         int nDiscarded = 0;
+        long previousTimestamp = 0;
+        long currentTimestamp = 0;
+        boolean disordered = false;
         long start = System.currentTimeMillis();
         int i=0;
         while(true) {
@@ -141,6 +144,17 @@ public class Cmd {
                 BasicPacketInfo basicPacket = packetReader.nextPacket();
                 nTotal++;
                 if(basicPacket !=null){
+                    //
+                    // Check that pcap file isn't disordered to make sure to obtain consistent network flows.
+                    //
+                    currentTimestamp = basicPacket.getTimeStamp();
+                    if(previousTimestamp>currentTimestamp){
+                        disordered = true;
+                        break;
+                    }else{
+                        previousTimestamp = currentTimestamp;
+                    }
+
                     flowGen.addPacket(basicPacket);
                     nValid++;
                 }else{
@@ -152,14 +166,22 @@ public class Cmd {
             i++;
         }
 
-        flowGen.dumpLabeledCurrentFlow(saveFileFullPath.getPath(), FlowFeature.getHeader());
+        if(disordered){
+            // The pcap file is disordered don't export network flows.
+            System.out.println("/!\\ The pcap file contains disordered packets ! The network flows may be incorrect.");
+            System.out.println("Please order your pcap file and run the tool again.");
+            System.out.println(DividingLine);
+        }else{
+            // the pcap file is well ordered continue and save network flows.
 
-        long lines = SwingUtils.countLines(saveFileFullPath.getPath());
+            flowGen.dumpLabeledCurrentFlow(saveFileFullPath.getPath(), FlowFeature.getHeader());
 
-        System.out.println(String.format("%s is done. total %d flows ",fileName,lines));
-        System.out.println(String.format("Packet stats: Total=%d,Valid=%d,Discarded=%d",nTotal,nValid,nDiscarded));
-        System.out.println(DividingLine);
+            long lines = SwingUtils.countLines(saveFileFullPath.getPath());
 
+            System.out.println(String.format("%s is done. total %d flows ",fileName,lines));
+            System.out.println(String.format("Packet stats: Total=%d,Valid=%d,Discarded=%d",nTotal,nValid,nDiscarded));
+            System.out.println(DividingLine);
+        
         //long end = System.currentTimeMillis();
         //logger.info(String.format("Done! in %d seconds",((end-start)/1000)));
         //logger.info(String.format("\t Total packets: %d",nTotal));
@@ -170,6 +192,7 @@ public class Cmd {
         //logger.info(String.format("Number of Flows: %d",singleTotal));
         //logger.info("{} is done,Total {} flows",inputFile,singleTotal);
         //System.out.println(String.format("%s is done,Total %d flows", inputFile, singleTotal));
+        }
     }
 
     static class FlowListener implements FlowGenListener {

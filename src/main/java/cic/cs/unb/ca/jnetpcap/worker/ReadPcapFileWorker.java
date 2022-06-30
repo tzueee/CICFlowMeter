@@ -158,12 +158,26 @@ public class ReadPcapFileWorker extends SwingWorker<List<String>,String> {
         int nValid=0;
         int nTotal=0;
         int nDiscarded = 0;
+        long previousTimestamp = 0;
+        long currentTimestamp = 0;
+        boolean disordered = false;
         long start = System.currentTimeMillis();
         while(true) {
             try{
                 BasicPacketInfo basicPacket = packetReader.nextPacket();
                 nTotal++;
                 if(basicPacket !=null){
+                    //
+                    // Check that pcap file isn't disordered to make sure to obtain consistent network flows.
+                    //
+                    currentTimestamp = basicPacket.getTimeStamp();
+                    if(previousTimestamp>currentTimestamp){
+                        disordered = true;
+                        break;
+                    }else{
+                        previousTimestamp = currentTimestamp;
+                    }
+
                     flowGen.addPacket(basicPacket);
                     nValid++;
                 }else{
@@ -173,16 +187,27 @@ public class ReadPcapFileWorker extends SwingWorker<List<String>,String> {
                 break;
             }
         }
-        flowGen.dumpLabeledCurrentFlow(saveFileFullPath.getPath(), FlowFeature.getHeader());
+        chunks.clear();
 
-        long lines = countLines(saveFileFullPath.getPath());
+        if(disordered){
+            // The pcap file is disordered don't export network flows.
+            chunks.add("/!\\ The pcap file contains disordered packets ! The network flows may be incorrect.");
+            chunks.add("Please order your pcap file and run the tool again.");
+            chunks.add(DividingLine);
+        }else{
+            // the pcap file is well ordered continue and save network flows.
+            flowGen.dumpLabeledCurrentFlow(saveFileFullPath.getPath(), FlowFeature.getHeader());
+
+            long lines = countLines(saveFileFullPath.getPath());
+        
+            chunks.add(String.format("Done! Total %d flows",lines));
+            chunks.add(String.format("Packets stats: Total=%d,Valid=%d,Discarded=%d",nTotal,nValid,nDiscarded));
+            chunks.add(DividingLine);
+    
+        }
 
         long end = System.currentTimeMillis();
 
-        chunks.clear();
-        chunks.add(String.format("Done! Total %d flows",lines));
-        chunks.add(String.format("Packets stats: Total=%d,Valid=%d,Discarded=%d",nTotal,nValid,nDiscarded));
-        chunks.add(DividingLine);
         publish(chunks.toArray( new String[chunks.size()]));
 
         /*chunks.add(String.format("\t Total packets: %d",nTotal));
