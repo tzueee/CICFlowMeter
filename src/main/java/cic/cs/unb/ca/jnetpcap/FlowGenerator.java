@@ -171,7 +171,29 @@ public class FlowGenerator {
                     flow.setTcpFlowState(TcpFlowState.READY_FOR_TERMINATION);
                 }
                 currentFlows.put(id, flow);
-            } else {
+            } else if (flow.getProtocol() == ProtocolEnum.ICMP) {
+                // create a new flow if the icmp code and types are different
+                if (flow.getIcmpCode() != packet.getIcmpCode() &&
+                        flow.getIcmpType() != packet.getIcmpType()) {
+                    // finish existing flow
+                    if (mListener != null) {
+                        mListener.onFlowGenerated(flow);
+                    } else {
+                        finishedFlows.put(getFlowCount(), flow);
+                    }
+                    currentFlows.remove(id);
+
+                    // create new flow
+                    currentFlows.put(id, new BasicFlow(bidirectional,packet,packet.getSrc(),packet.getDst(),packet.getSrcPort(),
+                            packet.getDstPort(), this.flowActivityTimeOut));
+
+                } else {
+                    // normal behavior
+                    flow.updateActiveIdleTime(currentTimestamp, this.flowActivityTimeOut);
+                    flow.addPacket(packet);
+                    currentFlows.put(id, flow);
+                }
+            } else { // default
                 flow.updateActiveIdleTime(currentTimestamp, this.flowActivityTimeOut);
                 flow.addPacket(packet);
                 currentFlows.put(id, flow);

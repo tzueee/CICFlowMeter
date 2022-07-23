@@ -13,6 +13,7 @@ import org.jnetpcap.protocol.network.Ip4;
 import org.jnetpcap.protocol.network.Ip6;
 import org.jnetpcap.protocol.tcpip.Tcp;
 import org.jnetpcap.protocol.tcpip.Udp;
+import org.jnetpcap.protocol.network.Icmp;
 import org.jnetpcap.protocol.vpn.L2TP;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +29,7 @@ public class PacketReader {
 	
 	private Tcp  tcp;
 	private Udp  udp;
+	private Icmp icmp;
 	private Ip4  ipv4;
 	private Ip6  ipv6;
 	private L2TP l2tp;
@@ -66,6 +68,7 @@ public class PacketReader {
 		}else{
 			this.tcp = new Tcp();
 			this.udp = new Udp();
+			this.icmp = new Icmp();
 			this.ipv4 = new Ip4();
 			this.ipv6 = new Ip6();
 			this.l2tp = new L2TP();
@@ -125,7 +128,15 @@ public class PacketReader {
 					this.firstPacket = packet.getCaptureHeader().timestampInMillis();
 				this.lastPacket = packet.getCaptureHeader().timestampInMillis();
 
-				if(packet.hasHeader(this.tcp)){
+				// This check needs to be first because ICMP protocol may embed the contents of
+				// the original packet (so it will have tcp/udp headers as well).
+				if (packet.hasHeader(this.icmp)) {
+					packetInfo.setProtocol(ProtocolEnum.ICMP);
+					packetInfo.setSrcPort(0);
+					packetInfo.setDstPort(0);
+					packetInfo.setIcmpCode(icmp.code());
+					packetInfo.setIcmpType(icmp.type());
+				} else if(packet.hasHeader(this.tcp)){
 					packetInfo.setTCPWindow(tcp.window());
 					packetInfo.setSrcPort(tcp.source());
 					packetInfo.setDstPort(tcp.destination());
