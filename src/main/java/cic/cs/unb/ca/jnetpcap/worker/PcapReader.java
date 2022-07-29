@@ -48,9 +48,10 @@ public class PcapReader {
         int nValid = 0;
         int nTotal = 0;
         int nDiscarded = 0;
-        long previousTimestamp = 0;
-        long currentTimestamp = 0;
+        long previousTimestamp = 0L;
+        long currentTimestamp = 0L;
         boolean disordered = false;
+        long idDisorderedPacket = 0L;
         long start = System.currentTimeMillis();
         while (true) {
             try {
@@ -61,9 +62,16 @@ public class PcapReader {
                     // Check that pcap file isn't disordered to make sure to obtain consistent netflows.
                     //
                     currentTimestamp = basicPacket.getTimeStamp();
-                    if(previousTimestamp>currentTimestamp){
+                    if(!(disordered) && (previousTimestamp>currentTimestamp)){
+                        idDisorderedPacket = basicPacket.getId(); // save ID of the first disordered packet.
                         disordered = true;
-                        break;
+
+                        // The pcap file is disordered thus show the warning to user
+                        System.out.println("\t-----------------------------------------------------------");
+                        System.out.println("/!\\ The pcap file contains disordered packets ! The network flows may be incorrect.");
+                        System.out.println(String.format("The packet with ID %d is the first disordered one.", idDisorderedPacket));
+                        System.out.println("Please order your pcap file and run the tool again.");
+                        System.out.println("\t-----------------------------------------------------------");
                     }else{
                         previousTimestamp = currentTimestamp;
                     }
@@ -78,22 +86,13 @@ public class PcapReader {
             }
         }
 
-        if(disordered){
-            // The pcap file is disordered don't export network flows.
-            System.out.println("/!\\ The pcap file contains disordered packets ! The network flows may be incorrect.");
-            System.out.println("Please order your pcap file and run the tool again.");
-            System.out.println("----------------------------------------------------------------------------");
-        }else{
-            // the pcap file is well ordered continue and save network flows.
+        flowGen.dumpLabeledCurrentFlow(saveFileFullPath.getPath(), FlowFeature.getHeader());
 
-            flowGen.dumpLabeledCurrentFlow(saveFileFullPath.getPath(), FlowFeature.getHeader());
+        long lines = countLines(saveFileFullPath.getPath());
 
-            long lines = countLines(saveFileFullPath.getPath());
-
-            System.out.println(String.format("%s is done. total %d flows ", fileName, lines));
-            System.out.println(String.format("Packet stats: Total=%d,Valid=%d,Discarded=%d", nTotal, nValid, nDiscarded));
-            System.out.println("-----------------------------------------------------------------------------------------");
-        }
+        System.out.println(String.format("%s is done. total %d flows ", fileName, lines));
+        System.out.println(String.format("Packet stats: Total=%d,Valid=%d,Discarded=%d", nTotal, nValid, nDiscarded));
+        System.out.println("-----------------------------------------------------------------------------------------");
     }
 
 

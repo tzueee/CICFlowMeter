@@ -22,6 +22,7 @@ public class ReadPcapFileWorker extends SwingWorker<List<String>,String> {
     public static final String PROPERTY_CUR_FILE = "file_current";
     public static final String PROPERTY_FLOW = "file_flow";
     private static final String DividingLine = "---------------------------------------------------------------------------------------------------------------";
+    private static final String IntermediateDividingLine = "--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  -- ";
 
     private long flowTimeout;
     private long activityTimeout;
@@ -158,10 +159,14 @@ public class ReadPcapFileWorker extends SwingWorker<List<String>,String> {
         int nValid=0;
         int nTotal=0;
         int nDiscarded = 0;
-        long previousTimestamp = 0;
-        long currentTimestamp = 0;
+        long previousTimestamp = 0L;
+        long currentTimestamp = 0L;
         boolean disordered = false;
+        long idDisorderedPacket = 0L;
         long start = System.currentTimeMillis();
+        
+        
+
         while(true) {
             try{
                 BasicPacketInfo basicPacket = packetReader.nextPacket();
@@ -171,9 +176,19 @@ public class ReadPcapFileWorker extends SwingWorker<List<String>,String> {
                     // Check that pcap file isn't disordered to make sure to obtain consistent network flows.
                     //
                     currentTimestamp = basicPacket.getTimeStamp();
-                    if(previousTimestamp>currentTimestamp){
+                    if(!(disordered) && (previousTimestamp>currentTimestamp)){
+                        idDisorderedPacket = basicPacket.getId(); // save ID of the first disordered packet.
                         disordered = true;
-                        break;
+
+                        // The pcap file is disordered don't export network flows.
+                        chunks.clear();
+                        chunks.add(IntermediateDividingLine);
+                        chunks.add("/!\\ The pcap file contains disordered packets ! The network flows may be incorrect.");
+                        chunks.add(String.format("The packet with ID %d is the first disordered one.", idDisorderedPacket));
+                        chunks.add("Please order your pcap file and run the tool again.");
+                        chunks.add(IntermediateDividingLine);
+                        publish(chunks.toArray( new String[chunks.size()]));
+
                     }else{
                         previousTimestamp = currentTimestamp;
                     }
@@ -187,24 +202,16 @@ public class ReadPcapFileWorker extends SwingWorker<List<String>,String> {
                 break;
             }
         }
+
+        flowGen.dumpLabeledCurrentFlow(saveFileFullPath.getPath(), FlowFeature.getHeader());
+
+        long lines = countLines(saveFileFullPath.getPath());
+
         chunks.clear();
-
-        if(disordered){
-            // The pcap file is disordered don't export network flows.
-            chunks.add("/!\\ The pcap file contains disordered packets ! The network flows may be incorrect.");
-            chunks.add("Please order your pcap file and run the tool again.");
-            chunks.add(DividingLine);
-        }else{
-            // the pcap file is well ordered continue and save network flows.
-            flowGen.dumpLabeledCurrentFlow(saveFileFullPath.getPath(), FlowFeature.getHeader());
-
-            long lines = countLines(saveFileFullPath.getPath());
-        
-            chunks.add(String.format("Done! Total %d flows",lines));
-            chunks.add(String.format("Packets stats: Total=%d,Valid=%d,Discarded=%d",nTotal,nValid,nDiscarded));
-            chunks.add(DividingLine);
+        chunks.add(String.format("Done! Total %d flows",lines));
+        chunks.add(String.format("Packets stats: Total=%d,Valid=%d,Discarded=%d",nTotal,nValid,nDiscarded));
+        chunks.add(DividingLine);
     
-        }
 
         long end = System.currentTimeMillis();
 
