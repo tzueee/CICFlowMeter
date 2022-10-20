@@ -73,9 +73,10 @@ public class CICFlowMeter {
 			int nValid=0;
 			int nTotal=0;
 			int nDiscarded = 0;
-			long previousTimestamp = 0;
-			long currentTimestamp = 0;
+			long previousTimestamp = 0L;
+			long currentTimestamp = 0L;
 			boolean disordered = false;
+			long idDisorderedPacket = 0L;
 			long start = System.currentTimeMillis();
 						
 		    while(true){
@@ -87,9 +88,17 @@ public class CICFlowMeter {
 						// Check that pcap file isn't disordered to make sure to obtain consistent network flows.
 						//
 						currentTimestamp = basicPacket.getTimeStamp();
-						if(previousTimestamp>currentTimestamp){
+						if(!(disordered) && (previousTimestamp>currentTimestamp)){
+							idDisorderedPacket = basicPacket.getId(); // save ID of the first disordered packet.
 							disordered = true;
-							break;
+				
+							// The pcap file is disordered thus show the warning to user
+							logger.info("----------------------------------------------------------------------------");
+							logger.info("/!\\ The pcap file contains disordered packets ! The network flows may be incorrect.");
+							logger.info("The packet with ID {} is the first disordered one.", idDisorderedPacket);
+							logger.info("Please order your pcap file and run the tool again.");
+							logger.info("----------------------------------------------------------------------------");
+							
 						}else{
 							previousTimestamp = currentTimestamp;
 						}
@@ -102,27 +111,20 @@ public class CICFlowMeter {
 				}catch(PcapClosedException e){
 					break;
 				}
-			}		
-
-			if(disordered){
-				// The pcap file is disordered don't export network flows.
-				logger.info("/!\\ The pcap file contains disordered packets ! The network flows may be incorrect.");
-				logger.info("Please order your pcap file and run the tool again.");
-				logger.info("----------------------------------------------------------------------------");
-			}else{
-				// the pcap file is well ordered continue and save flows.
-
-				long end = System.currentTimeMillis();
-				logger.info("Done! in {} seconds",((end-start)/1000));
-				logger.info("\t Total packets: {}",nTotal);
-				logger.info("\t Valid packets: {}",nValid);
-				logger.info("\t Ignored packets:{} {} ", nDiscarded,(nTotal-nValid) );
-				logger.info("PCAP duration {} seconds",((packetReader.getLastPacket()-packetReader.getFirstPacket())/1000));
-				logger.info("----------------------------------------------------------------------------");
-				totalFlows+=flowGen.dumpLabeledFlowBasedFeatures(outpath, file+"_ISCX.csv", FlowFeature.getHeader());
-				//flowGen.dumpIPAddresses(outpath, file+"_IP-Addresses.csv");
-				//flowGen.dumpTimeBasedFeatures(outpath, file+".csv");
 			}
+
+		
+			long end = System.currentTimeMillis();
+			logger.info("Done! in {} seconds",((end-start)/1000));
+			logger.info("\t Total packets: {}",nTotal);
+			logger.info("\t Valid packets: {}",nValid);
+			logger.info("\t Ignored packets:{} {} ", nDiscarded,(nTotal-nValid) );
+			logger.info("PCAP duration {} seconds",((packetReader.getLastPacket()-packetReader.getFirstPacket())/1000));
+			logger.info("----------------------------------------------------------------------------");
+			totalFlows+=flowGen.dumpLabeledFlowBasedFeatures(outpath, file+"_ISCX.csv", FlowFeature.getHeader());
+			//flowGen.dumpIPAddresses(outpath, file+"_IP-Addresses.csv");
+			//flowGen.dumpTimeBasedFeatures(outpath, file+".csv");
+
 		}
 		logger.info("\n\n----------------------------------------------------------------------------\n TOTAL FLOWS GENERATED: {}",totalFlows);
 		logger.info("----------------------------------------------------------------------------\n");
